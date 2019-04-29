@@ -2171,6 +2171,19 @@ function getConfigFileForPath(service, username, path, filename, scope, pluginDe
   return null;
 }
 
+function testCache(request, codeTag) {
+  let hackCache = request.session.hackCache;
+  if (hackCache == null) {
+    hackCache = {};
+    request.session.hackCache = hackCache;
+  }
+
+  accessLogger.info(`cache (${codeTag})`, hackCache);
+
+  hackCache[request.url] = request.baseUrl;
+
+}
+
 function ConfigService(context) {
   this.serviceDefinition = context.serviceDefinition;
   this.context = context;
@@ -2188,6 +2201,8 @@ function ConfigService(context) {
   let router = express.Router();
   router.use((request,response,next)=> {
     let authData = {username:request.username};
+
+    testCache(request, "constructor");
     
     accessLogger.debug('Configuration service requested. Path='+request.path+'. Name Query='+request.query.name);
     var uri = request.path;
@@ -2286,6 +2301,7 @@ function ConfigService(context) {
     determineResource(null,parts,0,request,response);
   });
   router.all('/:pluginID/user/:resource*',(request, response)=> {
+    testCache(request, "user");
     request.scope = CONFIG_SCOPE_USER;
     request.resourceURL+='/user';    
     if (!request.username) {
